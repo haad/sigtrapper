@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sigtrapper-deployment
+  namespace: default
+  labels:
+    env: dev
+    app: sigtrapper
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sigtrapper
+      env: dev
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        env: dev
+        app: sigtrapper
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: sigtrapper
+          image: haad/sigtrapper:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          lifecycle:
+            preStop:
+              exec:
+                command: ["kill", "-SIGUSR1", "1"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sigtrapper-service
+spec:
+  type: ClusterIP
+  selector:
+    env: dev
+    app: sigtrapper
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
